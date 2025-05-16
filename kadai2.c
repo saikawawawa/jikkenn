@@ -5,8 +5,9 @@
 
 #define BUFSIZE 1024 //ファイルから読み込む一行の最大文字数
 #define MAX_SEQ_NUM 30 //一つの転写因子に対して与えられる結合部位配列の最大数
-#define MAX_GENE_NUM 8 /*与えられるプロモータ領域の最大遺伝子数*/
-#define NUM 4
+#define MAX_GENE_NUM 8 //与えられるプロモータ領域の最大遺伝子数
+#define ACGT 4
+#define threshold 6 //閾値
 
 char g_motif[MAX_SEQ_NUM][BUFSIZE]; //転写因子の結合部位配列を保存する配列
 
@@ -57,27 +58,17 @@ int read_promoter(char *filename){
   return gene_num;
 }
 
+int frequency(){
+  
+}
 int main(int argc, char* argv[]){
   int seq_num = read_multi_seq(argv[1]); //１番目の引数で指定した転写因子の複数の結合部位配列を読み込む
-
-  printf("motif region:\n");
-  for(int i = 0; i < seq_num; i++){
-    printf("%s\n",g_motif[i]); //読み込んだ転写因子の結合部位配列を表示
-  }
-  printf("\n");
-
   int gene_num = read_promoter(argv[2]);  //２番目の引数で指定した遺伝子のプロモータ領域を読み込む
-  
-  printf("promoter_sequence:\n");
-  for(int i = 0; i < gene_num; i++){
-    printf(">%s\n", g_pro[i].name); //読み込んだプロモータ領域を表示
-    printf("%s\n", g_pro[i].seq);
-  }
-  
+
   int num = strlen(g_motif[0]);
-  float hindo[4][num];
+  float hindo[ACGT][num];
   int i=0, j=0;
-  for(i=0; i<4; i++){
+  for(i=0; i<ACGT; i++){
     for(j=0; j<num; j++){
         hindo[i][j]=0;
     }
@@ -93,58 +84,66 @@ int main(int argc, char* argv[]){
     }
   }
 
-  /*for(i=0; i<4; i++){
-  for(j=0; j<num; j++){
-    printf("%d ",hindo[i][j]+1);
-    }
-    printf("\n");
-  }*/
-
   float m = hindo[0][0]+hindo[1][0]+hindo[2][0]+hindo[3][0]+4;
-  for(i=0; i<4; i++){
+  for(i=0; i<ACGT; i++){
     for(j=0; j<num; j++){
         hindo[i][j]=hindo[i][j]+1;
     }
   }
-  for(i=0; i<4; i++){
+  for(i=0; i<ACGT; i++){
     for(j=0; j<num; j++){
         hindo[i][j]=hindo[i][j]/m;
     }
   }
-  
-
-/*for(i=0; i<4; i++){
-  for(j=0; j<num; j++){
-    printf("%f ",hindo[i][j]);
-    }
-    printf("\n");
-  }*/
 
   float qAT = 7519429.0/(7519429+4637676+4637676+7519429);
   float qCG = 4637676.0/(7519429+4637676+4637676+7519429);
-  float q[4]={qAT, qCG, qCG, qAT};
+  float q[ACGT]={qAT, qCG, qCG, qAT};
 
   float hindo_1[4][num];
-  for(i=0; i<4; i++){
+  for(i=0; i<ACGT; i++){
     for(j=0; j<num; j++){
         hindo_1[i][j]=0;
     }
   }
-  for(i=0; i<4; i++){
+  for(i=0; i<ACGT; i++){
     for(j=0; j<num; j++){
         hindo_1[i][j]=log(hindo[i][j]/q[i]);
     }
   }
 
-  for(i=0; i<4; i++){
-  for(j=0; j<num; j++){
-    printf("%f ",hindo_1[i][j]);
-    }
-    printf("\n");
-  }
-
   int len = strlen(g_pro[0].seq);
-  
+  int pos=0;
+  float score=0.0;
+  char hairetu[num+1];
+  char max_score_hairetu[num+1];
+  for(i=0; i<MAX_GENE_NUM; i++){
+    printf("pro:%s\n",g_pro[i].name);
+    for(j=0; j<len-num; j++){
+      score=0.0;
+      for(int k=0; k<num; k++){
+        hairetu[k]=g_pro[i].seq[j+k];
+          if(g_pro[i].seq[j+k]=='A'){
+            score+=hindo_1[0][k];
+          }
+          if(g_pro[i].seq[j+k]=='C'){
+            score+=hindo_1[1][k];
+          }
+          if(g_pro[i].seq[j+k]=='G'){
+            score+=hindo_1[2][k];
+          }
+          if(g_pro[i].seq[j+k]=='T'){
+            score+=hindo_1[3][k];
+          }
+        }
+        hairetu[num] = '\0';
 
+        if (score >= threshold) {
+          printf("pos:%d\n",j+1);
+          printf("hit(%s)=%f\n\n",hairetu,score);
+        }
+      }
+    }
+  
   return 0;
 }
