@@ -140,6 +140,8 @@ int main(int argc, char* argv[]){
   int transcription_factor_len=strlen(g_motif[0]);
   float matrix[ACGT][transcription_factor_len];
 
+  printf("Motif: %s\n\n", argv[1]);
+  
   frequency_matrix(transcription_factor_len, matrix);
   score_matrix(transcription_factor_len, matrix);
   binding_site(transcription_factor_len, matrix);
